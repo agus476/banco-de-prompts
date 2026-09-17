@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Banco de prompts y bitácora de IA
 
-## Getting Started
+Aplicación personal para dos usos que conviven, pero no se mezclan:
 
-First, run the development server:
+1. **Biblioteca** — prompts reutilizables: guardar, encontrar, ver, copiar.
+2. **Bitácora** — evidencia real del trabajo con IA en un trabajo práctico.
+
+La aplicación no genera prompts, respuestas ni decisiones. Solo organiza lo que vos registrás y lo exporta tal cual.
+
+## Cómo correrla
 
 ```bash
+npm install
+npx prisma db push
+npm run db:seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Tests: `npm test`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Diseño
 
-## Learn More
+### Biblioteca vs bitácora
 
-To learn more about Next.js, take a look at the following resources:
+| Biblioteca | Bitácora |
+| --- | --- |
+| Prompts genéricos, editables, con categorías y tags | Registro cronológico de un trabajo concreto |
+| El valor es reutilizar | El valor es poder reconstruir el proceso |
+| Se puede cambiar después | Cada iteración guarda un snapshot del texto usado |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Un prompt de bitácora puede nacer ahí, venir de la biblioteca, o copiarse después a la biblioteca. En todos los casos la bitácora conserva su propio texto: si editás el prompt de la biblioteca, la evidencia académica no cambia.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Modelo de datos
 
-## Deploy on Vercel
+- `Category` 1—n `Prompt`
+- `Prompt` n—n `Tag` (tabla `PromptTag`)
+- `Subject` 1—n `Project`
+- `Project` 1—n `Session`
+- `Session` 1—n `Interaction`
+- `Interaction.libraryPromptId` opcional → `Prompt`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+SQLite + Prisma. Los ids son `cuid` y no hay tipos propios de SQLite, para poder pasar a PostgreSQL cambiando el `provider` y la URL.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Arquitectura
+
+Un solo proyecto Next.js (App Router).
+
+- Lectura en Server Components
+- Mutaciones en Server Actions
+- Exportación en un Route Handler (`/proyectos/[id]/exportar`) y vista de entrega imprimible (`/proyectos/[id]/bitacora`)
+- Persistencia en `src/lib/*`
+- Sin autenticación, ni API pública, ni servicios extra
+
+```text
+src/
+  app/            rutas (biblioteca, proyectos, bitácoras, materias)
+  actions/        mutaciones
+  components/     UI
+  lib/            Prisma, consultas, exportación
+prisma/
+  schema.prisma
+  seed.ts
+```
+
+### MVP
+
+Incluido: CRUD de prompts, categorías, tags, favoritos, búsqueda y copiado; proyectos, materias, sesiones e interacciones; vínculo biblioteca ↔ bitácora; modo oscuro; exportación Markdown, texto plano y vista para guardar como PDF.
+
+Fuera de alcance: login, multi-usuario, cloud, embeddings, scrape automático de chats, DOCX, adjuntos, Git, variables de prompts.
+
+### Importar desde VS Code / Cursor
+
+Hay un endpoint local `POST /api/import` y una extensión en `vscode-extension/`.
+
+Mandás JSON con `interaction.prompt` + `interaction.response` (o un array `interactions`). La app lo guarda en una sesión de bitácora **tal cual**.
+
+Paso a paso de instalación y uso: [`vscode-extension/README.md`](./vscode-extension/README.md).
+
+### Riesgos que el modelo evita
+
+- **Mutar evidencia al editar un prompt de la biblioteca.** Se copia el texto a la interacción.
+- **Inventar contenido en la exportación.** Las secciones vacías se omiten o se marcan como no registradas.
+- **Acoplar SQLite de más.** Sin enums nativos ni tipos binarios específicos.
+
+## Entregar una bitácora
+
+1. Abrí el proyecto.
+2. En **Preparar entrega** → **Vista para PDF**.
+3. Revisá el documento.
+4. **Imprimir / Guardar PDF** y, en el diálogo del navegador, elegí *Guardar como PDF*.
+
+También podés descargar Markdown o texto plano si el docente pide un archivo adjunto editable. La exportación no inventa prompts, respuestas ni decisiones.
+
+## Uso académico
+
+Esta herramienta ayuda a conservar el proceso. No escribe la defensa por vos. En la entrega tenés que poder explicar el código, las decisiones y las iteraciones con lo que realmente hiciste.

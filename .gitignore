@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+/vscode-extension/node_modules
+/vscode-extension/out
+/vscode-extension/*.vsix
 /.pnp
 .pnp.*
 .yarn/*
@@ -32,6 +35,14 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# sqlite
+/prisma/*.db
+/prisma/*.db-journal
+/prisma/*.db-wal
+/prisma/*.db-shm
+/prisma/*.db.backup
 
 # vercel
 .vercel

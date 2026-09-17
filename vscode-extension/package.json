@@ -1,0 +1,80 @@
+{
+  "name": "banco-de-prompts",
+  "displayName": "Banco de prompts",
+  "description": "Envía interacciones (prompt + respuesta) a tu Banco de prompts local.",
+  "version": "0.2.0",
+  "publisher": "agus",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onCommand:banco.importChat",
+    "onCommand:banco.importFromCodex",
+    "onCommand:banco.importFromVSCode",
+    "onCommand:banco.importFromCursor",
+    "onCommand:banco.saveInteraction"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "banco.importChat",
+        "title": "Banco: Importar chat"
+      },
+      {
+        "command": "banco.importFromCodex",
+        "title": "Banco: Importar chat de Codex"
+      },
+      {
+        "command": "banco.importFromVSCode",
+        "title": "Banco: Importar chat de VS Code"
+      },
+      {
+        "command": "banco.importFromCursor",
+        "title": "Banco: Importar chat de Cursor"
+      },
+      {
+        "command": "banco.saveInteraction",
+        "title": "Banco: Guardar interacción manual"
+      }
+    ],
+    "configuration": {
+      "title": "Banco de prompts",
+      "properties": {
+        "banco.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL base de la app Banco de prompts (sin barra final)."
+        },
+        "banco.importToken": {
+          "type": "string",
+          "default": "",
+          "description": "Token opcional (debe coincidir con IMPORT_TOKEN del .env de la app)."
+        },
+        "banco.defaultProjectId": {
+          "type": "string",
+          "default": "",
+          "description": "ID de proyecto por defecto. Si está vacío, la extensión te deja elegir."
+        },
+        "banco.defaultTool": {
+          "type": "string",
+          "default": "Codex",
+          "enum": ["ChatGPT", "Claude", "Gemini", "Copilot", "Cursor", "Codex", "Otra"],
+          "description": "Herramienta por defecto en importaciones manuales."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.0.0"
+  }
+}

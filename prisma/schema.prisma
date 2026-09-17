@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Prompt reutilizable de la biblioteca personal.
+/// Independiente de las bitácoras: el contenido se copia a las interacciones
+/// para no alterar evidencia académica si el prompt se edita después.
+model Prompt {
+  id               String    @id @default(cuid())
+  title            String
+  description      String?
+  content          String
+  favorite         Boolean   @default(false)
+  tool             String?
+  recommendedModel String?
+  usageContext     String?
+  categoryId       String
+  category         Category  @relation(fields: [categoryId], references: [id])
+  tags             PromptTag[]
+  interactions     Interaction[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([categoryId])
+  @@index([favorite])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  prompts   Prompt[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id        String      @id @default(cuid())
+  name      String
+  slug      String      @unique
+  prompts   PromptTag[]
+  createdAt DateTime    @default(now())
+}
+
+model PromptTag {
+  promptId String
+  tagId    String
+  prompt   Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([promptId, tagId])
+  @@index([tagId])
+}
+
+/// Materia académica. Agrupa proyectos / trabajos prácticos.
+model Subject {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+/// Trabajo práctico o proyecto académico. Su bitácora son las sesiones.
+model Project {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime?
+  institution String?
+  teacher     String?
+  status      String      @default("IN_PROGRESS")
+  notes       String?
+  conclusions String?
+  subjectId   String
+  subject     Subject     @relation(fields: [subjectId], references: [id])
+  sessions    Session[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([subjectId])
+  @@index([status])
+}
+
+/// Una conversación con una herramienta de IA dentro de un proyecto.
+model Session {
+  id              String        @id @default(cuid())
+  title           String
+  tool            String
+  model           String?
+  date            DateTime      @default(now())
+  conversationUrl String?
+  observations    String?
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  interactions    Interaction[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([projectId])
+}
+
+/// Una iteración real (prompt → respuesta → decisión). No se genera sola.
+model Interaction {
+  id              String       @id @default(cuid())
+  order           Int
+  prompt          String
+  response        String       @default("")
+  notes           String?
+  generatedCode   String?
+  decision        String?
+  outcome         String?
+  outcomeStatus   String       @default("PENDING")
+  affectedFiles   String?
+  conceptsToStudy String?
+  sessionId       String
+  session         Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  libraryPromptId String?
+  libraryPrompt   Prompt?      @relation(fields: [libraryPromptId], references: [id], onDelete: SetNull)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([sessionId, order])
+  @@index([sessionId])
+  @@index([libraryPromptId])
+}

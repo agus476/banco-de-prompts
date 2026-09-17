@@ -1,26 +1,140 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f2f2f7;
+  --surface: #ffffff;
+  --surface-hover: #f3f3f5;
+  --border: rgb(60 60 67 / 12%);
+  --text-primary: #1c1c1e;
+  --text-secondary: #6e6e73;
+  --accent: #2aa7b3;
+  --accent-hover: #23939e;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(42 167 179 / 12%);
+  --danger: #ff3b30;
+  --danger-soft: rgb(255 59 48 / 10%);
+  --sidebar: #f2f2f7;
+  --sidebar-fg: #1c1c1e;
+  --sidebar-muted: #6e6e73;
+  --sidebar-hover: rgb(0 0 0 / 5%);
+  --sidebar-active: rgb(0 0 0 / 7%);
+  --shadow: 0 1px 2px rgb(0 0 0 / 4%);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #1c1c1e;
+  --surface: #2c2c2e;
+  --surface-hover: #3a3a3c;
+  --border: rgb(255 255 255 / 8%);
+  --text-primary: #f5f5f7;
+  --text-secondary: #98989d;
+  --accent: #64d2ff;
+  --accent-hover: #7ed9ff;
+  --accent-fg: #00344a;
+  --accent-soft: rgb(100 210 255 / 12%);
+  --danger: #ff6961;
+  --danger-soft: rgb(255 105 97 / 12%);
+  --sidebar: #161617;
+  --sidebar-fg: #f5f5f7;
+  --sidebar-muted: #8e8e93;
+  --sidebar-hover: rgb(255 255 255 / 5%);
+  --sidebar-active: rgb(255 255 255 / 8%);
+  --shadow: 0 1px 0 rgb(255 255 255 / 4%);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-foreground: var(--text-primary);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-hover);
+  --color-surface-hover: var(--surface-hover);
+  --color-line: var(--border);
+  --color-border: var(--border);
+  --color-muted: var(--text-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-fg: var(--sidebar-fg);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-source-serif);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-card: var(--shadow);
+  --spacing-page: 1.25rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-secondary) 40%, transparent) transparent;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-primary);
+}
+
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.logbook-sheet {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 12px 40px rgb(0 0 0 / 8%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+
+  .logbook-sheet {
+    box-shadow: none !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }
