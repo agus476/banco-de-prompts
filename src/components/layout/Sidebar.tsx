@@ -9,6 +9,7 @@ import { APP_OWNER, NAV_ITEMS } from "@/lib/identity";
 import { AppLogo } from "@/components/brand/AppLogo";
 import { CategoryGlyph } from "@/components/brand/CategoryGlyph";
 import { AppearanceControl } from "@/components/layout/AppearanceControl";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { SidebarItem } from "@/components/ui/SidebarItem";
 
 type SidebarProps = {
@@ -115,6 +116,7 @@ export function Sidebar({ categories }: SidebarProps) {
           </div>
           <div className="my-2.5 h-px bg-border" />
           <AppearanceControl />
+          <LogoutButton />
         </div>
       </div>
     </div>
