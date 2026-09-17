@@ -20,7 +20,13 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const isLogin = request.nextUrl.pathname === "/login";
+  const isImportApi = request.nextUrl.pathname === "/api/import";
+  const importToken = process.env.IMPORT_TOKEN?.trim();
+  const hasImportToken = Boolean(
+    importToken && request.headers.get("x-import-token") === importToken,
+  );
 
+  if (isImportApi && hasImportToken) return response;
   if (!user && !isLogin) return NextResponse.redirect(new URL("/login", request.url));
   if (user && isLogin) return NextResponse.redirect(new URL("/biblioteca", request.url));
   return response;
