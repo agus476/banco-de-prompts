@@ -1,7 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { authorizeImportRequest } from "@/lib/import-auth";
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/api/import") {
+    return authorizeImportRequest(request) ?? NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,13 +25,7 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const isLogin = request.nextUrl.pathname === "/login";
-  const isImportApi = request.nextUrl.pathname === "/api/import";
-  const importToken = process.env.IMPORT_TOKEN?.trim();
-  const hasImportToken = Boolean(
-    importToken && request.headers.get("x-import-token") === importToken,
-  );
 
-  if (isImportApi && hasImportToken) return response;
   if (!user && !isLogin) return NextResponse.redirect(new URL("/login", request.url));
   if (user && isLogin) return NextResponse.redirect(new URL("/biblioteca", request.url));
   return response;

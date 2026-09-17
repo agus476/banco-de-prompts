@@ -1,6 +1,10 @@
-import * as fs from "fs";
-import * as os from "os";
+﻿import * as os from "os";
 import * as path from "path";
+import type { ChatTurn } from "./chat-types";
+import {
+  chatFile, chatLimit, chatTitle, directoryEntries, isRecord, jsonRecords,
+  newestFirst, textValue, workspacePath, type ChatFile,
+} from "./chat-files";
 
 export type TranscriptChat = {
   id: string;
@@ -10,162 +14,94 @@ export type TranscriptChat = {
   mtimeMs: number;
 };
 
-export type TranscriptTurn = {
-  order: number;
-  prompt: string;
-  response: string;
-};
+export type TranscriptTurn = ChatTurn;
 
-type ContentPart = {
-  type?: string;
-  text?: string;
-};
-
-type TranscriptLine = {
-  role?: string;
-  message?: {
-    content?: ContentPart[] | string;
-  };
-};
-
-function cursorProjectsRoot(): string {
-  return path.join(os.homedir(), ".cursor", "projects");
-}
-
-function readTextParts(content: ContentPart[] | string | undefined): string {
-  if (!content) return "";
+function readTextParts(content: unknown): string {
   if (typeof content === "string") return content.trim();
-  return content
-    .filter((part) => part.type === "text" && typeof part.text === "string")
-    .map((part) => part.text!.trim())
-    .filter(Boolean)
-    .join("\n\n")
-    .trim();
+  if (!Array.isArray(content)) return "";
+  return content.map((part) => isRecord(part) && part.type === "text" ? textValue(part.text) : "")
+    .filter(Boolean).join("\n\n");
 }
 
-/** Saca el <user_query> si existe; si no, usa el texto completo limpio. */
+/** Extract the user query without importing Cursor's timestamp/context wrapper. */
 export function cleanUserPrompt(raw: string): string {
   const match = raw.match(/<user_query>\s*([\s\S]*?)\s*<\/user_query>/i);
-  if (match?.[1]) return match[1].trim();
-  return raw
-    .replace(/<timestamp>[\s\S]*?<\/timestamp>/gi, "")
-    .replace(/<\/?user_query>/gi, "")
-    .trim();
+  if (match) return match[1].trim();
+  return raw.replace(/<timestamp>[\s\S]*?<\/timestamp>/gi, "")
+    .replace(/<\/?user_query>/gi, "").trim();
+}
+
+function readTranscript(filePath: string, preview = false): TranscriptTurn[] {
+  const turns: TranscriptTurn[] = [];
+  let prompt = "";
+  let response: string[] = [];
+  const flush = () => {
+    if (prompt) turns.push({ order: turns.length + 1, prompt, response: response.join("\n\n") });
+    prompt = "";
+    response = [];
+  };
+  for (const entry of jsonRecords(filePath)) {
+    const text = readTextParts(isRecord(entry.message) ? entry.message.content : undefined);
+    if (entry.role === "user") {
+      flush();
+      prompt = cleanUserPrompt(text);
+      if (preview && prompt) {
+        flush();
+        break;
+      }
+    } else if (entry.role === "assistant" && prompt && text) {
+      response.push(text);
+    }
+  }
+  flush();
+  return turns;
 }
 
 export function parseTranscriptTurns(filePath: string): TranscriptTurn[] {
-  const raw = fs.readFileSync(filePath, "utf8");
-  const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
-
-  const turns: TranscriptTurn[] = [];
-  let pendingPrompt: string | null = null;
-  let pendingResponse: string[] = [];
-
-  const flush = () => {
-    if (!pendingPrompt) return;
-    turns.push({
-      order: turns.length + 1,
-      prompt: pendingPrompt,
-      response: pendingResponse.join("\n\n").trim(),
-    });
-    pendingPrompt = null;
-    pendingResponse = [];
-  };
-
-  for (const line of lines) {
-    let parsed: TranscriptLine;
-    try {
-      parsed = JSON.parse(line) as TranscriptLine;
-    } catch {
-      continue;
-    }
-
-    const role = parsed.role;
-    const text = readTextParts(parsed.message?.content);
-    if (!role) continue;
-
-    if (role === "user") {
-      flush();
-      const prompt = cleanUserPrompt(text);
-      if (prompt) pendingPrompt = prompt;
-      continue;
-    }
-
-    if (role === "assistant" && pendingPrompt && text) {
-      pendingResponse.push(text);
-    }
-  }
-
-  flush();
-  return turns.filter((turn) => turn.prompt.length > 0);
-}
-
-function titleFromTurns(turns: TranscriptTurn[], fallback: string): string {
-  const first = turns[0]?.prompt?.replace(/\s+/g, " ").trim() ?? "";
-  if (!first) return fallback;
-  return first.length > 72 ? `${first.slice(0, 69)}…` : first;
+  return readTranscript(filePath);
 }
 
 export function listCursorTranscripts(limit = 40): TranscriptChat[] {
-  const root = cursorProjectsRoot();
-  if (!fs.existsSync(root)) return [];
-
-  const chats: TranscriptChat[] = [];
-
-  for (const projectSlug of fs.readdirSync(root)) {
-    const transcriptsDir = path.join(root, projectSlug, "agent-transcripts");
-    if (!fs.existsSync(transcriptsDir)) continue;
-
-    for (const entry of fs.readdirSync(transcriptsDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const id = entry.name;
-      const filePath = path.join(transcriptsDir, id, `${id}.jsonl`);
-      if (!fs.existsSync(filePath)) continue;
-
-      let turns: TranscriptTurn[] = [];
-      try {
-        turns = parseTranscriptTurns(filePath);
-      } catch {
-        continue;
-      }
-      if (turns.length === 0) continue;
-
-      const stat = fs.statSync(filePath);
-      chats.push({
-        id,
-        title: titleFromTurns(turns, id),
-        filePath,
-        projectSlug,
-        mtimeMs: stat.mtimeMs,
-      });
+  const count = chatLimit(limit);
+  if (!count) return [];
+  const root = path.join(os.homedir(), ".cursor", "projects");
+  const candidates: (ChatFile & { id: string; projectSlug: string })[] = [];
+  for (const project of directoryEntries(root)) {
+    if (!project.isDirectory()) continue;
+    const directory = path.join(root, project.name, "agent-transcripts");
+    for (const entry of directoryEntries(directory)) {
+      const filePath = entry.isDirectory()
+        ? path.join(directory, entry.name, `${entry.name}.jsonl`)
+        : path.join(directory, entry.name);
+      if (!entry.isDirectory() && (!entry.isFile() || !/\.jsonl$/i.test(entry.name))) continue;
+      const file = chatFile(filePath);
+      if (file) candidates.push({ ...file, id: entry.isDirectory() ? entry.name : path.parse(entry.name).name, projectSlug: project.name });
     }
   }
-
-  return chats.sort((a, b) => b.mtimeMs - a.mtimeMs).slice(0, limit);
+  const chats: TranscriptChat[] = [];
+  for (const file of newestFirst(candidates)) {
+    try {
+      const turns = readTranscript(file.filePath, true);
+      if (!turns.length) continue;
+      chats.push({ ...file, title: chatTitle(turns[0].prompt, file.id) });
+      if (chats.length >= count) break;
+    } catch {
+      // Continue when another editor removes or locks a transcript during discovery.
+    }
+  }
+  return chats;
 }
 
-/** Preferí chats del workspace abierto si el path coincide con el slug. */
-export function rankTranscriptsForWorkspace(
-  chats: TranscriptChat[],
-  workspaceFolder?: string,
-): TranscriptChat[] {
+/** Match the full encoded workspace path before falling back to its folder name. */
+export function rankTranscriptsForWorkspace(chats: TranscriptChat[], workspaceFolder?: string): TranscriptChat[] {
   if (!workspaceFolder) return chats;
-  const normalized = workspaceFolder.replace(/\\/g, "/").toLowerCase();
-  const scored = chats.map((chat) => {
-    const slug = chat.projectSlug.toLowerCase().replace(/-/g, "");
-    const hay = normalized.replace(/[^a-z0-9]/g, "");
-    const score = hay.includes(slug.replace(/^cusers/, "").slice(0, 24)) ||
-      slug.includes(
-        path
-          .basename(workspaceFolder)
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, ""),
-      )
-      ? 1
-      : 0;
-    return { chat, score };
-  });
-  return scored
-    .sort((a, b) => b.score - a.score || b.chat.mtimeMs - a.chat.mtimeMs)
-    .map((item) => item.chat);
+  const normalized = workspacePath(workspaceFolder).toLowerCase();
+  const slug = normalized.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
+  const folder = path.posix.basename(normalized).replace(/[^\p{L}\p{N}]+/gu, "-");
+  const score = (chat: TranscriptChat) => {
+    const project = chat.projectSlug.toLowerCase().replace(/^-|-$/g, "");
+    if (slug && (project === slug || project.startsWith(`${slug}-`))) return 2;
+    return folder && (project === folder || project.endsWith(`-${folder}`)) ? 1 : 0;
+  };
+  return [...chats].sort((a, b) => score(b) - score(a) || b.mtimeMs - a.mtimeMs);
 }

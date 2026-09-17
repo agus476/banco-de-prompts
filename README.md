@@ -1,98 +1,79 @@
-# Banco de prompts y bitácora de IA
+# Banco de prompts
 
-Aplicación personal para dos usos que conviven, pero no se mezclan:
+Una biblioteca de prompts reutilizables y una bitácora para conservar el trabajo real con IA. La extensión de VS Code permite llevar conversaciones de Codex, Copilot Chat y Cursor a tus proyectos, eligiendo qué interacciones guardar.
 
-1. **Biblioteca** — prompts reutilizables: guardar, encontrar, ver, copiar.
-2. **Bitácora** — evidencia real del trabajo con IA en un trabajo práctico.
+El repositorio contiene dos aplicaciones:
 
-La aplicación no genera prompts, respuestas ni decisiones. Solo organiza lo que vos registrás y lo exporta tal cual.
+| Componente | Función |
+| --- | --- |
+| App web, en la raíz | Biblioteca, proyectos, sesiones, materias y exportación de bitácoras. |
+| [Extensión de VS Code](./vscode-extension/README.md) | Panel lateral, importación de chats locales y registro manual. Requiere conectarse a la app web. |
 
-## Cómo correrla
+## Iniciar la app web
+
+Necesitás Node.js 22 o superior, PostgreSQL y un proyecto de Supabase para autenticación por email y contraseña.
+
+1. Copiá [`.env.example`](./.env.example) a `.env` y completá las conexiones PostgreSQL, las credenciales públicas de Supabase y `IMPORT_TOKEN`.
+2. Creá tu usuario de acceso en Authentication del proyecto de Supabase. La app tiene inicio de sesión, sin formulario de registro.
+3. Instalá y prepará una base destinada a esta aplicación:
 
 ```bash
-npm install
-npx prisma db push
+npm ci
+npm run db:push
 npm run db:seed
 npm run dev
 ```
 
-Abrí [http://localhost:3000](http://localhost:3000).
+Abrí [localhost:3000](http://localhost:3000), iniciá sesión y creá una materia y un proyecto. El seed agrega categorías y ejemplos de prompts; no reemplaza la configuración de autenticación.
 
-Tests: `npm test`
+`DATABASE_URL` es la conexión que usa la aplicación y `DIRECT_URL` la conexión directa para administrar el esquema con Prisma. Si usás PostgreSQL de Supabase, copiá las cadenas correspondientes desde su panel de conexión. No subas `.env` al repositorio.
 
-## Diseño
+## Conectar VS Code
 
-### Biblioteca vs bitácora
+Instalar la extensión no instala ni inicia el servidor. Con la app disponible y al menos un proyecto creado:
+
+1. Instalá el VSIX y abrí el panel **Banco de prompts**.
+2. Configurá `banco.apiUrl` con la URL de la app.
+3. Guardá en la extensión el mismo `IMPORT_TOKEN` configurado en el servidor.
+4. Comprobá la conexión e importá un chat o una interacción manual.
+
+El token es obligatorio también en localhost. Las URLs remotas requieren HTTPS; HTTP se permite únicamente con `localhost`, `127.0.0.1` o `[::1]`. La extensión guarda el token mediante SecretStorage de VS Code, asociado a cada URL.
+
+La [guía de la extensión](./vscode-extension/README.md) detalla la instalación, las fuentes compatibles y la solución de errores.
+
+## Biblioteca y bitácora
 
 | Biblioteca | Bitácora |
 | --- | --- |
-| Prompts genéricos, editables, con categorías y tags | Registro cronológico de un trabajo concreto |
-| El valor es reutilizar | El valor es poder reconstruir el proceso |
-| Se puede cambiar después | Cada iteración guarda un snapshot del texto usado |
+| Prompts editables con categorías, tags y favoritos. | Sesiones e interacciones de un proyecto concreto. |
+| Diseñada para encontrar y reutilizar. | Diseñada para reconstruir decisiones y resultados. |
+| El contenido puede evolucionar. | Cada interacción conserva su propio texto. |
 
-Un prompt de bitácora puede nacer ahí, venir de la biblioteca, o copiarse después a la biblioteca. En todos los casos la bitácora conserva su propio texto: si editás el prompt de la biblioteca, la evidencia académica no cambia.
+Copiar un prompt de la biblioteca a una sesión no vincula sus futuras ediciones. La herramienta organiza el contenido registrado; no genera respuestas ni una defensa académica.
 
-### Modelo de datos
+Para entregar una bitácora, abrí el proyecto y usá **Preparar entrega → Vista para PDF**, o descargá Markdown o texto plano.
 
-- `Category` 1—n `Prompt`
-- `Prompt` n—n `Tag` (tabla `PromptTag`)
-- `Subject` 1—n `Project`
-- `Project` 1—n `Session`
-- `Session` 1—n `Interaction`
-- `Interaction.libraryPromptId` opcional → `Prompt`
+## Arquitectura
 
-SQLite + Prisma. Los ids son `cuid` y no hay tipos propios de SQLite, para poder pasar a PostgreSQL cambiando el `provider` y la URL.
-
-### Arquitectura
-
-Un solo proyecto Next.js (App Router).
-
-- Lectura en Server Components
-- Mutaciones en Server Actions
-- Exportación en un Route Handler (`/proyectos/[id]/exportar`) y vista de entrega imprimible (`/proyectos/[id]/bitacora`)
-- Persistencia en `src/lib/*`
-- Sin autenticación, ni API pública, ni servicios extra
+Next.js App Router y React, PostgreSQL con Prisma, y Supabase Auth para la web. La API `/api/import` usa un token independiente de la sesión del navegador. Este proyecto está orientado a una instancia personal: los registros no están separados por usuario.
 
 ```text
-src/
-  app/            rutas (biblioteca, proyectos, bitácoras, materias)
-  actions/        mutaciones
-  components/     UI
-  lib/            Prisma, consultas, exportación
-prisma/
-  schema.prisma
-  seed.ts
+src/app/              Rutas, páginas y API de importación
+src/actions/          Mutaciones de la app
+src/components/       Interfaz web
+src/lib/              Consultas, autenticación, importación y exportación
+prisma/               Esquema PostgreSQL y datos iniciales
+vscode-extension/     Extensión instalable y documentación de publicación
 ```
 
-### MVP
+## Desarrollo y publicación
 
-Incluido: CRUD de prompts, categorías, tags, favoritos, búsqueda y copiado; proyectos, materias, sesiones e interacciones; vínculo biblioteca ↔ bitácora; modo oscuro; exportación Markdown, texto plano y vista para guardar como PDF.
+En la raíz:
 
-Fuera de alcance: login, multi-usuario, cloud, embeddings, scrape automático de chats, DOCX, adjuntos, Git, variables de prompts.
+```bash
+npm test
+npm run lint
+npm run build
+```
 
-### Importar desde VS Code / Cursor
-
-Hay un endpoint local `POST /api/import` y una extensión en `vscode-extension/`.
-
-Mandás JSON con `interaction.prompt` + `interaction.response` (o un array `interactions`). La app lo guarda en una sesión de bitácora **tal cual**.
-
-Paso a paso de instalación y uso: [`vscode-extension/README.md`](./vscode-extension/README.md).
-
-### Riesgos que el modelo evita
-
-- **Mutar evidencia al editar un prompt de la biblioteca.** Se copia el texto a la interacción.
-- **Inventar contenido en la exportación.** Las secciones vacías se omiten o se marcan como no registradas.
-- **Acoplar SQLite de más.** Sin enums nativos ni tipos binarios específicos.
-
-## Entregar una bitácora
-
-1. Abrí el proyecto.
-2. En **Preparar entrega** → **Vista para PDF**.
-3. Revisá el documento.
-4. **Imprimir / Guardar PDF** y, en el diálogo del navegador, elegí *Guardar como PDF*.
-
-También podés descargar Markdown o texto plano si el docente pide un archivo adjunto editable. La exportación no inventa prompts, respuestas ni decisiones.
-
-## Uso académico
-
-Esta herramienta ayuda a conservar el proceso. No escribe la defensa por vos. En la entrega tenés que poder explicar el código, las decisiones y las iteraciones con lo que realmente hiciste.
+Para compilar, probar y empaquetar la extensión, seguí [PUBLISHING.md](./vscode-extension/PUBLISHING.md). La extensión tiene licencia [MIT](./vscode-extension/LICENSE); sus prácticas de datos están en [PRIVACY.md](./vscode-extension/PRIVACY.md).

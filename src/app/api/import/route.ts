@@ -1,28 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeImportRequest } from "@/lib/import-auth";
 import {
   importInteractions,
   parseImportPayload,
 } from "@/lib/import-interaction";
 import { prisma } from "@/lib/prisma";
 
-function unauthorized() {
-  return NextResponse.json({ error: "Token inválido." }, { status: 401 });
-}
-
-function checkToken(request: NextRequest) {
-  const expected = process.env.IMPORT_TOKEN?.trim();
-  if (!expected) return true;
-  const header = request.headers.get("x-import-token") ?? "";
-  const auth = request.headers.get("authorization") ?? "";
-  const bearer = auth.toLowerCase().startsWith("bearer ")
-    ? auth.slice(7).trim()
-    : "";
-  return header === expected || bearer === expected;
-}
-
 /** Lista proyectos/sesiones para el picker de la extensión. */
 export async function GET(request: NextRequest) {
-  if (!checkToken(request)) return unauthorized();
+  const authError = authorizeImportRequest(request);
+  if (authError) return authError;
 
   const projects = await prisma.project.findMany({
     select: {
@@ -43,7 +30,8 @@ export async function GET(request: NextRequest) {
 
 /** Importa una o más interacciones desde la extensión VS Code. */
 export async function POST(request: NextRequest) {
-  if (!checkToken(request)) return unauthorized();
+  const authError = authorizeImportRequest(request);
+  if (authError) return authError;
 
   let raw: unknown;
   try {

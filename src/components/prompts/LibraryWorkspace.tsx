@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Plus } from "lucide-react";
+import { ArrowUpRight, BookOpen, Plus } from "lucide-react";
 import { PromptCard } from "@/components/prompts/PromptCard";
 import { PromptFilters, type PromptSort } from "@/components/prompts/PromptFilters";
 import { ButtonLink, EmptyState } from "@/components/ui/Form";
@@ -41,34 +41,36 @@ export function LibraryWorkspace({
   tags: { name: string; slug: string }[];
   detail?: ReactNode;
 }) {
+  const filtered = Boolean(q || category || tag);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header
         className={cn(
-          "border-b border-border px-5 pt-5 pb-4 pl-16 lg:pt-6 lg:pl-5",
+          "border-b border-border bg-surface px-5 py-6 lg:px-7 lg:py-7",
           showPanel && "hidden lg:block",
         )}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-medium tracking-[0.16em] text-text-secondary uppercase">
+        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-accent uppercase">
               {eyebrow}
             </p>
-            <h1 className="mt-1 text-[22px] font-semibold tracking-tight text-text-primary">
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-text-primary lg:text-[28px]">
               {title}
             </h1>
-            <p className="mt-1 max-w-xl text-[13px] leading-5 text-text-secondary">
+            <p className="mt-2 max-w-xl text-[13px] leading-6 text-text-secondary">
               {description}
             </p>
           </div>
-          <ButtonLink href={newHref} className="mt-1 shrink-0">
-            <Plus className="h-4 w-4" />
+          <ButtonLink href={newHref} className="shrink-0 shadow-card sm:mt-1">
+            <Plus className="h-4 w-4" aria-hidden />
             {newLabel}
           </ButtonLink>
         </div>
       </header>
 
-      <div className={cn("border-b border-border pt-3", showPanel && "hidden lg:block")}>
+      <div className={cn("border-b border-border bg-surface pt-4", showPanel && "hidden lg:block")}>
         <PromptFilters
           basePath={basePath}
           q={q}
@@ -83,19 +85,23 @@ export function LibraryWorkspace({
       <div className="flex min-h-0 flex-1">
         <section
           className={cn(
-            "min-h-0 w-full overflow-y-auto px-3 py-3 lg:w-[380px] lg:shrink-0 lg:border-r lg:border-border xl:w-[420px]",
+            "min-h-0 w-full overflow-y-auto px-4 pt-4 pb-6 lg:w-[360px] lg:shrink-0 lg:border-r lg:border-border xl:w-[400px]",
             showPanel && "hidden lg:block",
           )}
           aria-label="Lista de prompts"
         >
+          <div className="mb-3 flex items-center justify-between px-1 text-[11px] text-text-secondary" role="status">
+            <span className="font-medium">{filtered ? "Resultados" : "Tu colección"}</span>
+            <span className="tabular-nums">{prompts.length} {prompts.length === 1 ? "prompt" : "prompts"}</span>
+          </div>
           {prompts.length === 0 ? (
             <EmptyState
-              title="Todavía no hay prompts"
-              description="Creá el primero para dejar de buscarlo entre chats y archivos."
-              action={<ButtonLink href={newHref}>{newLabel}</ButtonLink>}
+              title={filtered ? "No encontramos coincidencias" : "Tu próxima buena idea empieza acá"}
+              description={filtered ? "Probá otra búsqueda o quitá los filtros para ver más prompts." : "Guardá tu primer prompt y tenelo a mano cuando lo necesites."}
+              action={!filtered ? <ButtonLink href={newHref}>{newLabel}</ButtonLink> : undefined}
             />
           ) : (
-            <div className="space-y-0.5">
+            <div className="space-y-3">
               {prompts.map((prompt) => (
                 <PromptCard
                   key={prompt.id}
@@ -116,10 +122,21 @@ export function LibraryWorkspace({
           aria-label="Detalle"
         >
           {detail ?? (
-            <div className="flex flex-1 items-center justify-center px-8 text-center">
-              <p className="max-w-xs text-[13px] leading-6 text-text-secondary">
-                Seleccioná un prompt para leerlo, copiarlo o editarlo.
+            <div className="flex flex-1 flex-col items-center justify-center px-8 py-12 text-center">
+              <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/15 bg-accent-soft text-accent">
+                <BookOpen className="h-7 w-7" strokeWidth={1.5} aria-hidden />
+              </span>
+              <p className="text-[10px] font-semibold tracking-[0.18em] text-text-secondary uppercase">Menos buscar. Más crear.</p>
+              <h2 className="mt-3 text-xl font-semibold tracking-tight text-text-primary">Tus mejores prompts, a mano</h2>
+              <p className="mt-3 max-w-xs text-[13px] leading-6 text-text-secondary">
+                Seleccioná uno de tu colección para leerlo, copiarlo o seguir mejorándolo.
               </p>
+              <div className="mt-7">
+                <ButtonLink href={newHref} variant="secondary">
+                  {newLabel}
+                  <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+                </ButtonLink>
+              </div>
             </div>
           )}
         </section>

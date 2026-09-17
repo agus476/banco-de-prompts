@@ -9,8 +9,8 @@ export function Card({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border border-border bg-surface shadow-card",
-        padded && "p-5",
+        "overflow-hidden rounded-xl border border-border bg-surface shadow-card",
+        padded && "p-5 sm:p-6",
         className,
       )}
       {...props}
@@ -25,7 +25,7 @@ export function NoteBlock({
   return (
     <section
       className={cn(
-        "rounded-lg bg-background px-4 py-4 shadow-[inset_0_0_0_1px_var(--border)]",
+        "rounded-lg border border-border bg-background px-4 py-4 sm:px-5 sm:py-5",
         className,
       )}
       {...props}

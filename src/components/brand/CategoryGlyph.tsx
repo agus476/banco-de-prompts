@@ -52,7 +52,7 @@ export function CategoryGlyph({
   return (
     <span
       className={cn(
-        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-surface-hover text-text-secondary",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-accent-soft text-accent",
         className,
       )}
       aria-hidden

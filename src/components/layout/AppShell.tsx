@@ -25,23 +25,23 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mb-8 flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
       <div>
         {eyebrow ? (
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-text-secondary">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="mt-1 text-[22px] font-semibold tracking-tight text-text-primary">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-text-primary sm:text-[28px]">
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 max-w-2xl text-[13px] leading-6 text-text-secondary">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
             {description}
           </p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap gap-2 sm:pt-1">{actions}</div> : null}
     </div>
   );
 }

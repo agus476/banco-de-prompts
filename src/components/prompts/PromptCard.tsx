@@ -19,33 +19,34 @@ export function PromptCard({
   return (
     <article
       className={cn(
-        "rounded-md px-3 py-2.5 transition-colors duration-[180ms]",
+        "group rounded-lg border px-3.5 py-3.5 transition-colors duration-200",
         selected
-          ? "bg-surface-hover ring-1 ring-inset ring-accent/55"
-          : "hover:bg-surface-hover/70",
+          ? "border-accent/50 bg-accent-soft shadow-card"
+          : "border-border bg-surface shadow-card hover:border-accent/40 hover:bg-surface-hover/50",
       )}
     >
       <div className="flex items-start gap-2.5">
         <Link href={href} className="min-w-0 flex-1" aria-current={selected ? "page" : undefined}>
           <div className="flex items-start gap-2.5">
-            <CategoryGlyph name={prompt.category.name} className="mt-0.5 h-7 w-7 rounded-sm" />
+            <CategoryGlyph name={prompt.category.name} className="mt-0.5 h-8 w-8 rounded-md" />
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-[13px] font-medium text-text-primary">{prompt.title}</h2>
-              <p className="mt-0.5 line-clamp-2 text-[12px] leading-5 text-text-secondary">
+              <h2 className="line-clamp-2 text-[13px] leading-5 font-semibold text-text-primary">{prompt.title}</h2>
+              <p className="mt-1.5 line-clamp-2 text-[12px] leading-5 text-text-secondary">
                 {prompt.description || prompt.content}
               </p>
-              <div className="mt-2 flex flex-wrap gap-1">
+              <div className="mt-3 flex flex-wrap gap-1">
                 <Badge tone="muted">{prompt.category.name}</Badge>
                 {prompt.tags.slice(0, 3).map((item) => (
                   <Badge key={item.tag.id}>{item.tag.name}</Badge>
                 ))}
+                {prompt.tags.length > 3 ? <Badge>+{prompt.tags.length - 3}</Badge> : null}
               </div>
             </div>
           </div>
         </Link>
         <FavoriteButton id={prompt.id} favorite={prompt.favorite} />
       </div>
-      <div className="mt-2 flex items-center justify-between gap-2 pl-[38px]">
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-2.5 pl-[42px]">
         <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-text-secondary">
           {prompt.tool ? (
             <>

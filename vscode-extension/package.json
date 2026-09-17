@@ -1,19 +1,15 @@
 {
   "name": "banco-de-prompts",
-  "displayName": "Banco de prompts",
-  "description": "Envía interacciones (prompt + respuesta) a tu Banco de prompts local.",
-  "version": "0.2.0",
+  "displayName": "Banco de prompts · Bitácora de IA",
+  "description": "Guardá conversaciones de Codex, GitHub Copilot y Cursor en tu bitácora de IA. Elegí los turnos, organizá tu proceso y volvé a tus ideas.",
+  "version": "0.3.0",
   "publisher": "agus",
   "engines": {
     "vscode": "^1.90.0"
   },
-  "categories": ["Other"],
-  "activationEvents": [
-    "onCommand:banco.importChat",
-    "onCommand:banco.importFromCodex",
-    "onCommand:banco.importFromVSCode",
-    "onCommand:banco.importFromCursor",
-    "onCommand:banco.saveInteraction"
+  "categories": [
+    "Other",
+    "Education"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -37,6 +33,34 @@
       {
         "command": "banco.saveInteraction",
         "title": "Banco: Guardar interacción manual"
+      },
+      {
+        "command": "banco.openApp",
+        "title": "Banco: Abrir biblioteca",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "banco.openSettings",
+        "title": "Banco: Abrir configuración",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "banco.checkConnection",
+        "title": "Banco: Comprobar conexión",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "banco.configureToken",
+        "title": "Banco: Configurar token de importación",
+        "icon": "$(key)"
+      },
+      {
+        "command": "banco.removeToken",
+        "title": "Banco: Eliminar token de importación"
+      },
+      {
+        "command": "banco.clearHistory",
+        "title": "Banco: Limpiar historial local de importaciones"
       }
     ],
     "configuration": {
@@ -45,12 +69,15 @@
         "banco.apiUrl": {
           "type": "string",
           "default": "http://localhost:3000",
-          "description": "URL base de la app Banco de prompts (sin barra final)."
+          "description": "URL de tu app Banco de prompts. Usá HTTPS para una app remota, o http://localhost:3000 en desarrollo. Al cambiar la URL, configurá el token para ese destino.",
+          "scope": "application"
         },
         "banco.importToken": {
           "type": "string",
           "default": "",
-          "description": "Token opcional (debe coincidir con IMPORT_TOKEN del .env de la app)."
+          "description": "Opción anterior, conservada sólo para migrar el token al almacén seguro.",
+          "scope": "application",
+          "markdownDeprecationMessage": "Usá el comando **Banco: Configurar token de importación**. El token se guarda en SecretStorage, separado por URL. Los tokens anteriores en configuración de usuario se migran automáticamente."
         },
         "banco.defaultProjectId": {
           "type": "string",
@@ -60,21 +87,110 @@
         "banco.defaultTool": {
           "type": "string",
           "default": "Codex",
-          "enum": ["ChatGPT", "Claude", "Gemini", "Copilot", "Cursor", "Codex", "Otra"],
+          "enum": [
+            "ChatGPT",
+            "Claude",
+            "Gemini",
+            "Copilot",
+            "Cursor",
+            "Codex",
+            "Otra"
+          ],
           "description": "Herramienta por defecto en importaciones manuales."
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "banco",
+          "title": "Banco de prompts",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "banco": [
+        {
+          "id": "banco.home",
+          "name": "Tu espacio",
+          "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "banco.openSettings",
+          "when": "view == banco.home",
+          "group": "navigation@1"
+        },
+        {
+          "command": "banco.openApp",
+          "when": "view == banco.home",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "banco.saveInteraction",
+          "when": "editorHasSelection",
+          "group": "banco@1"
+        }
+      ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm test",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --no-dependencies"
+    "test": "npm run compile && node --test test/*.test.cjs",
+    "check:package": "vsce ls --no-dependencies",
+    "verify": "npm test && npm run check:package",
+    "package": "vsce package --no-dependencies --baseContentUrl https://github.com/agus476/banco-de-prompts/blob/main/vscode-extension --baseImagesUrl https://github.com/agus476/banco-de-prompts/raw/main/vscode-extension"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/vscode": "^1.90.0",
+    "@types/vscode": "1.90.0",
+    "@vscode/vsce": "^4.0.0",
     "typescript": "^5.0.0"
+  },
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "keywords": [
+    "prompts",
+    "bitacora",
+    "AI",
+    "Codex",
+    "Copilot",
+    "Cursor",
+    "chat",
+    "logbook"
+  ],
+  "galleryBanner": {
+    "color": "#111c24",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agus476/banco-de-prompts.git",
+    "directory": "vscode-extension"
+  },
+  "homepage": "https://github.com/agus476/banco-de-prompts/tree/main/vscode-extension#readme",
+  "bugs": {
+    "url": "https://github.com/agus476/banco-de-prompts/issues"
+  },
+  "extensionKind": [
+    "ui"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "La importación accede a historiales de chats locales y envía los turnos que elegís a tu app."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Requiere acceso al sistema de archivos local de VS Code de escritorio."
+    }
   }
 }

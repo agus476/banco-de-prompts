@@ -13,6 +13,11 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "prisma/seed.ts",
+    "vscode-extension/out/**",
+    "vscode-extension/test/**",
+    "vscode-extension/media/**",
+    ".preview-tools/**",
+    "artifacts/**",
   ]),
 ]);
 

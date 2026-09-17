@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUpDown, Search } from "lucide-react";
+import { ArrowUpDown, LoaderCircle, Search, X } from "lucide-react";
 import { Select } from "@/components/ui/Form";
 
 export type PromptSort = "recent" | "title" | "created";
@@ -30,66 +30,76 @@ export function PromptFilters({
   const urlQuery = q ?? "";
   const [query, setQuery] = useState(urlQuery);
   const [queryFromUrl, setQueryFromUrl] = useState(urlQuery);
+  const [pending, startTransition] = useTransition();
 
   if (urlQuery !== queryFromUrl) {
     setQueryFromUrl(urlQuery);
     setQuery(urlQuery);
   }
 
-  function navigate(next: Record<string, string | undefined>) {
+  const navigate = useCallback((next: Record<string, string | undefined>) => {
     const params = new URLSearchParams();
     const values = {
-      q: next.q ?? query,
-      category: next.category ?? category,
-      tag: next.tag ?? tag,
-      sort: next.sort ?? sort,
+      q: query.trim(),
+      category,
+      tag,
+      sort,
+      ...next,
     };
     if (values.q) params.set("q", values.q);
     if (values.category) params.set("category", values.category);
     if (values.tag) params.set("tag", values.tag);
     if (values.sort && values.sort !== "recent") params.set("sort", values.sort);
     const qs = params.toString();
-    router.replace(qs ? `${basePath}?${qs}` : basePath);
-  }
+    startTransition(() => {
+      router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false });
+    });
+  }, [router, basePath, query, category, tag, sort]);
 
   useEffect(() => {
     const next = query.trim();
     const current = (q ?? "").trim();
-    if (next === current) return;
+    if (next === current || pending) return;
     const timeout = window.setTimeout(() => {
-      navigate({ q: next || undefined });
-    }, 200);
+      navigate({ q: next });
+    }, 250);
     return () => window.clearTimeout(timeout);
-    // navigate uses current filter props; listing those avoids stale URLs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  }, [query, q, navigate, pending]);
 
   return (
     <form
-      className="flex flex-col gap-2 px-4 pb-3 sm:flex-row sm:items-center"
+      role="search"
+      aria-label="Filtrar biblioteca"
+      aria-busy={pending}
+      className="grid grid-cols-2 items-center gap-2 px-5 pb-4 sm:grid-cols-3 lg:px-7 xl:grid-cols-[minmax(160px,1fr)_180px_130px_170px_auto]"
       onSubmit={(event) => {
         event.preventDefault();
-        navigate({ q: query.trim() || undefined });
+        navigate({ q: query.trim() });
       }}
     >
-      <label className="relative min-w-0 flex-1">
+      <label className="relative col-span-2 min-w-0 sm:col-span-3 xl:col-span-1">
         <span className="sr-only">Buscar prompts</span>
-        <Search className="pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
+        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" aria-hidden />
         <input
           name="q"
+          type="search"
+          autoComplete="off"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar"
-          className="h-9 w-full rounded-md border border-transparent bg-surface-hover pr-3 pl-9 text-[13px] text-text-primary outline-none transition-colors duration-[180ms] placeholder:text-text-secondary focus:bg-surface"
+          placeholder="Buscar en tus prompts…"
+          className="h-10 w-full rounded-md border border-border bg-background pr-9 pl-10 text-[13px] text-text-primary transition-colors placeholder:text-text-secondary focus:border-accent focus:bg-surface"
         />
+        {pending ? <LoaderCircle className="absolute top-1/2 right-3 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-accent" aria-hidden /> : null}
       </label>
-      <div className="sm:w-[148px]">
+      <div className="min-w-0">
         <Select
+          name="category"
           aria-label="Categoría"
+          className="h-10 border-border bg-surface"
           value={category ?? ""}
           onChange={(event) => navigate({ category: event.target.value || undefined })}
         >
-          <option value="">Categoría</option>
+          <option value="">Todas las categorías</option>
           {categories.map((item) => (
             <option key={item.slug} value={item.slug}>
               {item.name}
@@ -97,13 +107,15 @@ export function PromptFilters({
           ))}
         </Select>
       </div>
-      <div className="sm:w-[128px]">
+      <div className="min-w-0">
         <Select
-          aria-label="Tag"
+          name="tag"
+          aria-label="Etiqueta"
+          className="h-10 border-border bg-surface"
           value={tag ?? ""}
           onChange={(event) => navigate({ tag: event.target.value || undefined })}
         >
-          <option value="">Tag</option>
+          <option value="">Etiquetas</option>
           {tags.map((item) => (
             <option key={item.slug} value={item.slug}>
               {item.name}
@@ -111,20 +123,35 @@ export function PromptFilters({
           ))}
         </Select>
       </div>
-      <label className="relative sm:w-[148px]">
+      <label className="relative col-span-2 min-w-0 sm:col-span-1">
         <span className="sr-only">Ordenar</span>
-        <ArrowUpDown className="pointer-events-none absolute top-1/2 left-3 z-10 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" />
+        <ArrowUpDown className="pointer-events-none absolute top-1/2 left-3 z-10 h-3.5 w-3.5 -translate-y-1/2 text-text-secondary" aria-hidden />
         <Select
+          name="sort"
           aria-label="Ordenar"
           value={sort}
           onChange={(event) => navigate({ sort: event.target.value })}
-          className="pl-9"
+          className="h-10 border-border bg-surface pl-9"
         >
-          <option value="recent">Recientes</option>
-          <option value="title">Título</option>
-          <option value="created">Creados</option>
+          <option value="recent">Última edición</option>
+          <option value="title">Título A–Z</option>
+          <option value="created">Más nuevos</option>
         </Select>
       </label>
+      {query || category || tag || sort !== "recent" ? (
+        <button
+          type="button"
+          className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-md px-2 text-[12px] font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary sm:col-span-3 xl:col-span-1"
+          onClick={() => {
+            setQuery("");
+            navigate({ q: "", category: undefined, tag: undefined, sort: "recent" });
+          }}
+        >
+          <X className="h-3.5 w-3.5" aria-hidden />
+          Limpiar
+        </button>
+      ) : null}
+      <span className="sr-only" role="status">{pending ? "Actualizando resultados" : ""}</span>
     </form>
   );
 }
