@@ -3,7 +3,7 @@
   "displayName": "Banco de prompts · Bitácora de IA",
   "description": "Guardá conversaciones de Codex, GitHub Copilot y Cursor en tu bitácora de IA. Elegí los turnos, organizá tu proceso y volvé a tus ideas.",
   "version": "0.3.0",
-  "publisher": "agus",
+  "publisher": "AgustinSanchez",
   "engines": {
     "vscode": "^1.90.0"
   },

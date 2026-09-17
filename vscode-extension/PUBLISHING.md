@@ -1,6 +1,6 @@
 # Preparar y publicar la extensión
 
-La versión 0.3.0 se distribuye como VSIX. Empaquetar no publica en Marketplace. El manifiesto conserva `publisher: "agus"`: falta confirmar que esa identidad pertenece al responsable y que tiene acceso para publicar.
+La versión 0.3.0 se distribuye como VSIX. Empaquetar no publica en Marketplace. El manifiesto usa `publisher: "AgustinSanchez"`, que debe coincidir con el publisher de Marketplace.
 
 ## Preparar el paquete
 
@@ -49,7 +49,7 @@ Las pruebas automatizadas no reemplazan esta revisión del VSIX instalado ni la 
 ## Subir a Marketplace
 
 1. Iniciá sesión en [administración de publishers](https://marketplace.visualstudio.com/manage/publishers/).
-2. Confirmá el acceso al publisher `agus`, o creá uno propio y actualizá el manifiesto antes de volver a empaquetar. No asumas que un identificador está disponible.
+2. Confirmá el acceso al publisher `AgustinSanchez`. Si usás otro publisher, actualizá el manifiesto antes de volver a empaquetar.
 3. Creá una extensión de Visual Studio Code y cargá el VSIX revisado. Para una extensión existente, cargá una nueva versión desde su administración.
 4. Revisá la ficha, el resultado de validación y la instalación desde Marketplace.
 
